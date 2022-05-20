@@ -1,8 +1,8 @@
-namespace MassTransit.RabbitMqTransport
+namespace MassTransit
 {
     using System;
     using System.Diagnostics;
-    using Util;
+    using Internals;
 
 
     [DebuggerDisplay("{" + nameof(DebuggerDisplay) + "}")]
@@ -10,8 +10,8 @@ namespace MassTransit.RabbitMqTransport
     {
         const string HeartbeatKey = "heartbeat";
         const string PrefetchKey = "prefetch";
-        const string RabbitMqSchema = "rabbitmq";
-        const string RabbitMqSslSchema = "rabbitmqs";
+        public const string RabbitMqSchema = "rabbitmq";
+        public const string RabbitMqSslSchema = "rabbitmqs";
         const string TimeToLiveKey = "ttl";
 
         public readonly string Scheme;
@@ -76,10 +76,9 @@ namespace MassTransit.RabbitMqTransport
 
             if (port.HasValue)
             {
-                if (port.Value == 0)
+                if (port.Value <= 0)
                     Port = 5672;
-
-                if (port.Value == 5671)
+                else if (port.Value == 5671)
                     Scheme = RabbitMqSslSchema;
             }
 
@@ -93,8 +92,8 @@ namespace MassTransit.RabbitMqTransport
             scheme = address.Scheme;
             host = address.Host;
 
-            port = address.IsDefaultPort
-                ? scheme.EndsWith("s", StringComparison.OrdinalIgnoreCase) ? 5671 : 5672
+            port = address.IsDefaultPort || address.Port <= 0
+                ? scheme.EndsWith("s") ? 5671 : 5672
                 : address.Port;
 
             virtualHost = address.ParseHostPath();
@@ -108,11 +107,11 @@ namespace MassTransit.RabbitMqTransport
                 Host = address.Host,
                 Port = address.Port.HasValue
                     ? address.Scheme.EndsWith("s", StringComparison.OrdinalIgnoreCase)
-                        ? address.Port.Value == 5671 ? 0 : address.Port.Value
+                        ? address.Port.Value == 5671 ? -1 : address.Port.Value
                         : address.Port.Value == 5672
-                            ? 0
+                            ? -1
                             : address.Port.Value
-                    : 0,
+                    : -1,
                 Path = address.VirtualHost == "/"
                     ? "/"
                     : $"/{Uri.EscapeDataString(address.VirtualHost)}"

@@ -4,17 +4,14 @@ namespace MassTransit.Transports
     using System.Threading;
     using System.Threading.Tasks;
     using Configuration;
-    using Context;
-    using GreenPipes;
     using Logging;
-    using Metrics;
-    using Pipeline;
-    using Pipeline.Observables;
+    using Observables;
 
 
     public class ReceivePipeDispatcher :
         IReceivePipeDispatcher
     {
+        readonly string _activityName;
         readonly IHostConfiguration _hostConfiguration;
         readonly ReceiveObservable _observers;
         readonly IReceivePipe _receivePipe;
@@ -22,12 +19,18 @@ namespace MassTransit.Transports
         int _activeDispatchCount;
         long _dispatchCount;
         int _maxConcurrentDispatchCount;
+        readonly string _endpointName;
+        readonly string _inputAddress;
 
-        public ReceivePipeDispatcher(IReceivePipe receivePipe, ReceiveObservable observers, IHostConfiguration hostConfiguration)
+        public ReceivePipeDispatcher(IReceivePipe receivePipe, ReceiveObservable observers, IHostConfiguration hostConfiguration, Uri inputAddress)
         {
             _receivePipe = receivePipe;
             _observers = observers;
             _hostConfiguration = hostConfiguration;
+
+            _inputAddress = inputAddress.ToString();
+            _activityName = $"{inputAddress.GetDiagnosticEndpointName()} receive";
+            _endpointName = inputAddress.GetEndpointName();
         }
 
         public int ActiveDispatchCount => _activeDispatchCount;
@@ -47,7 +50,7 @@ namespace MassTransit.Transports
 
             var active = StartDispatch();
 
-            StartedActivity? activity = LogContext.IfEnabled(OperationName.Transport.Receive)?.StartReceiveActivity(context);
+            StartedActivity? activity = LogContext.Current?.StartReceiveActivity(_activityName, _inputAddress, _endpointName, context);
             try
             {
                 if (_observers.Count > 0)

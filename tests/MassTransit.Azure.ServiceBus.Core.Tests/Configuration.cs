@@ -1,8 +1,8 @@
 ﻿namespace MassTransit.Azure.ServiceBus.Core.Tests
 {
     using System;
-    using Configurators;
-    using Microsoft.Azure.ServiceBus.Management;
+    using global::Azure.Messaging.ServiceBus.Administration;
+    using MassTransit.Configuration;
     using NUnit.Framework;
 
 
@@ -28,26 +28,21 @@
                 ? TestContext.Parameters.Get(nameof(StorageAccount))
                 : Environment.GetEnvironmentVariable("MT_AZURE_STORAGE_ACCOUNT") ?? "";
 
-        public static ManagementClient GetManagementClient()
+        public static ServiceBusAdministrationClient GetManagementClient()
         {
             var hostAddress = AzureServiceBusEndpointUriCreator.Create(ServiceNamespace);
             var accountSettings = new TestAzureServiceBusAccountSettings();
-            var keyName = accountSettings.KeyName;
-            var accessKey = accountSettings.SharedAccessKey;
 
             var hostConfigurator = new ServiceBusHostConfigurator(hostAddress);
 
-            hostConfigurator.SharedAccessSignature(s =>
+            hostConfigurator.NamedKey(s =>
             {
-                s.KeyName = keyName;
-                s.SharedAccessKey = accessKey;
-                s.TokenTimeToLive = accountSettings.TokenTimeToLive;
-                s.TokenScope = accountSettings.TokenScope;
+                s.NamedKeyCredential = accountSettings.NamedKeyCredential;
             });
 
-            var endpoint = new UriBuilder(hostAddress) {Path = ""}.Uri.ToString();
+            var endpoint = new UriBuilder(hostAddress) { Path = "" }.Uri.Host;
 
-            var managementClient = new ManagementClient(endpoint, hostConfigurator.Settings.TokenProvider);
+            var managementClient = new ServiceBusAdministrationClient(endpoint, hostConfigurator.Settings.NamedKeyCredential);
 
             return managementClient;
         }

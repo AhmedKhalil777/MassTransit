@@ -1,4 +1,4 @@
-﻿namespace MassTransit.Azure.ServiceBus.Core
+﻿namespace MassTransit
 {
     using System;
 
@@ -42,7 +42,7 @@
         TimeSpan LockDuration { set; }
 
         /// <summary>
-        /// Sets the maximum delivery count. A message is automatically deadlettered after this number of deliveries.
+        /// Sets the maximum delivery count. A message is automatically dead-lettered after this number of deliveries.
         /// </summary>
         int MaxDeliveryCount { set; }
 
@@ -52,6 +52,11 @@
         bool RequiresSession { set; }
 
         /// <summary>
+        /// If session is required, sets the maximum concurrent calls per session (defaults to 1)
+        /// </summary>
+        int MaxConcurrentCallsPerSession { set; }
+
+        /// <summary>
         /// Sets the user metadata.
         /// </summary>
         string UserMetadata { set; }
@@ -59,7 +64,13 @@
         /// <summary>
         /// Sets the message session timeout period
         /// </summary>
+        [Obsolete("use SessionIdleTimeout, which this method calls through to for now")]
         TimeSpan MessageWaitTimeout { set; }
+
+        /// <summary>
+        /// Sets the message session idle timeout period
+        /// </summary>
+        TimeSpan SessionIdleTimeout { set; }
 
         /// <summary>
         /// Sets the maximum time for locks/sessions to be automatically renewed

@@ -4,14 +4,12 @@ namespace MassTransit.ActiveMqTransport.Tests
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Configurators;
-    using GreenPipes.Internals.Extensions;
+    using Configuration;
+    using Internals;
     using MassTransit.Testing;
     using NUnit.Framework;
     using TestFramework.Messages;
-    using Testing;
     using Topology;
-    using Topology.Topologies;
     using Util;
 
 
@@ -113,7 +111,7 @@ namespace MassTransit.ActiveMqTransport.Tests
             var settings = new ConfigurationHostSettings(new Uri("activemq://fake-host"))
             {
                 Port = 61616,
-                FailoverHosts = new[] {"failover1", "failover2"}
+                FailoverHosts = new[] { "failover1", "failover2" }
             };
 
             Assert.That(settings.BrokerAddress, Is.EqualTo(new Uri(
@@ -123,7 +121,7 @@ namespace MassTransit.ActiveMqTransport.Tests
         [Test]
         public async Task Pub_Sub_Queue_Names_Should_Not_Contain_Periods()
         {
-            var consumeTopology = new ActiveMqConsumeTopology(null, null);
+            var consumeTopology = new ActiveMqConsumeTopology(null);
             var queueName = consumeTopology.CreateTemporaryQueueName("bus.test");
             Assert.That(queueName, Does.Not.Contain('.'));
         }

@@ -3,7 +3,6 @@ namespace MassTransit.EventHubIntegration.Tests
     using System;
     using System.Threading.Tasks;
     using Contracts;
-    using GreenPipes;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Logging;
@@ -59,18 +58,12 @@ namespace MassTransit.EventHubIntegration.Tests
 
             try
             {
-                var correlationId = NewId.NextGuid();
-                await producer.Produce<EventHubMessage>(new
-                {
-                    CorrelationId = correlationId,
-                    Text = "text"
-                }, TestCancellationToken);
+                await producer.Produce<EventHubMessage>(new { Text = "text" }, TestCancellationToken);
 
                 var result = await sendFilterTaskCompletionSource.Task;
 
                 Assert.IsTrue(result.TryGetPayload<EventHubSendContext>(out _));
                 Assert.IsTrue(result.TryGetPayload<EventHubSendContext<EventHubMessage>>(out _));
-                Assert.AreEqual(correlationId, result.CorrelationId);
                 Assert.That(result.DestinationAddress,
                     Is.EqualTo(new Uri($"loopback://localhost/{EventHubEndpointAddress.PathPrefix}/{Configuration.EventHubName}")));
 

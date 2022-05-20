@@ -1,13 +1,10 @@
-﻿namespace MassTransit.Azure.ServiceBus.Core.Testing
+﻿namespace MassTransit.Testing
 {
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    using Configurators;
-    using Context;
-    using MassTransit.Testing;
-    using Microsoft.Azure.ServiceBus.Management;
-    using Microsoft.Azure.ServiceBus.Primitives;
+    using Azure;
+    using Azure.Messaging.ServiceBus.Administration;
 
 
     public class AzureServiceBusTestHarness :
@@ -15,27 +12,20 @@
     {
         Uri _inputQueueAddress;
 
-        public AzureServiceBusTestHarness(Uri serviceUri, string sharedAccessKeyName, string sharedAccessKeyValue, string inputQueueName = null)
+        public AzureServiceBusTestHarness(Uri serviceUri, AzureNamedKeyCredential namedKeyCredential, string inputQueueName = null)
         {
             if (serviceUri == null)
                 throw new ArgumentNullException(nameof(serviceUri));
 
             HostAddress = serviceUri;
-            SharedAccessKeyName = sharedAccessKeyName;
-            SharedAccessKeyValue = sharedAccessKeyValue;
-
-            TokenTimeToLive = TimeSpan.FromDays(1);
-            TokenScope = TokenScope.Namespace;
+            NamedKeyCredential = namedKeyCredential;
 
             InputQueueName = inputQueueName ?? "input_queue";
 
             ConfigureMessageScheduler = true;
         }
 
-        public string SharedAccessKeyName { get; }
-        public string SharedAccessKeyValue { get; }
-        public TimeSpan TokenTimeToLive { get; set; }
-        public TokenScope TokenScope { get; set; }
+        public AzureNamedKeyCredential NamedKeyCredential { get; }
         public override string InputQueueName { get; }
         public bool ConfigureMessageScheduler { get; set; }
 
@@ -59,44 +49,36 @@
         {
             var managementClient = CreateManagementClient();
 
-            IList<TopicDescription> topics = await managementClient.GetTopicsAsync();
+            AsyncPageable<TopicProperties> pageableTopics = managementClient.GetTopicsAsync();
+            IList<TopicProperties> topics = await pageableTopics.ToListAsync();
             while (topics.Count > 0)
             {
                 foreach (var topic in topics)
-                    await managementClient.DeleteTopicAsync(topic.Path);
+                    await managementClient.DeleteTopicAsync(topic.Name);
 
                 await Task.Delay(500);
 
-                topics = await managementClient.GetTopicsAsync();
+                topics = await managementClient.GetTopicsAsync().ToListAsync();
             }
 
-            IList<QueueDescription> queues = await managementClient.GetQueuesAsync();
+            AsyncPageable<QueueProperties> pageableQueues = managementClient.GetQueuesAsync();
+            IList<QueueProperties> queues = await pageableQueues.ToListAsync();
             while (queues.Count > 0)
             {
                 foreach (var queue in queues)
-                    await managementClient.DeleteQueueAsync(queue.Path);
+                    await managementClient.DeleteQueueAsync(queue.Name);
 
                 await Task.Delay(500);
 
-                queues = await managementClient.GetQueuesAsync();
+                queues = await managementClient.GetQueuesAsync().ToListAsync();
             }
         }
 
-        ManagementClient CreateManagementClient()
+        ServiceBusAdministrationClient CreateManagementClient()
         {
-            var hostConfigurator = new ServiceBusHostConfigurator(HostAddress);
+            var endpoint = new UriBuilder(HostAddress) { Path = "" }.Uri.ToString();
 
-            hostConfigurator.SharedAccessSignature(s =>
-            {
-                s.KeyName = SharedAccessKeyName;
-                s.SharedAccessKey = SharedAccessKeyValue;
-                s.TokenTimeToLive = TokenTimeToLive;
-                s.TokenScope = TokenScope;
-            });
-
-            var endpoint = new UriBuilder(HostAddress) {Path = ""}.Uri.ToString();
-
-            return new ManagementClient(endpoint, hostConfigurator.Settings.TokenProvider);
+            return new ServiceBusAdministrationClient(endpoint, NamedKeyCredential);
         }
 
         protected override IBusControl CreateBus()
@@ -105,12 +87,9 @@
             {
                 x.Host(HostAddress, h =>
                 {
-                    h.SharedAccessSignature(s =>
+                    h.NamedKey(s =>
                     {
-                        s.KeyName = SharedAccessKeyName;
-                        s.SharedAccessKey = SharedAccessKeyValue;
-                        s.TokenTimeToLive = TokenTimeToLive;
-                        s.TokenScope = TokenScope;
+                        s.NamedKeyCredential = NamedKeyCredential;
                     });
                 });
 

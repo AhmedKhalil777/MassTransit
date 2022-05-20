@@ -1,4 +1,4 @@
-namespace MassTransit.KafkaIntegration
+namespace MassTransit
 {
     using Confluent.Kafka;
 
@@ -78,5 +78,12 @@ namespace MassTransit.KafkaIntegration
         /// importance: low
         /// </summary>
         bool? EnableOauthbearerUnsecureJwt { set; }
+
+        /// <summary>
+        /// Set the "security.protocol" property on the client configuration
+        /// default: null
+        /// importance: low
+        /// </summary>
+        SecurityProtocol? SecurityProtocol { set; }
     }
 }

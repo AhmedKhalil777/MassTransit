@@ -1,8 +1,9 @@
-﻿namespace MassTransit.KafkaIntegration
+﻿namespace MassTransit
 {
     using System;
     using Confluent.Kafka;
-    using Serializers;
+    using KafkaIntegration;
+    using KafkaIntegration.Serializers;
 
 
     public interface IKafkaTopicReceiveEndpointConfigurator :
@@ -36,6 +37,11 @@
         /// </summary>
         [Obsolete("Use ConcurrentMessageLimit instead")]
         int ConcurrencyLimit { set; }
+
+        /// <summary>
+        /// The maximum number of messages in a single partition before checkpoint (default: 10000)
+        /// </summary>
+        ushort MessageLimit { set; }
 
         /// <summary>
         /// Set max message count for checkpoint, low message count will decrease throughput (default: 5000)

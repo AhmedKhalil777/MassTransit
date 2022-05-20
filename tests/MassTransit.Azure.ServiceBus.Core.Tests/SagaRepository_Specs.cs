@@ -4,10 +4,8 @@
     {
         using System;
         using System.Threading.Tasks;
-        using MassTransit.Saga;
+        using AzureServiceBusTransport;
         using NUnit.Framework;
-        using Saga;
-        using Util;
 
 
         public class JobState :
@@ -23,8 +21,8 @@
                 JobId = context.Message.JobId;
                 JobStatus = JobStatus.Created;
 
-                context.Respond(new JobCreated {JobId = JobId});
-                return TaskUtil.Completed;
+                context.Respond(new JobCreated { JobId = JobId });
+                return Task.CompletedTask;
             }
 
             public Guid CorrelationId { get; set; }
@@ -35,9 +33,9 @@
                     throw new InvalidOperationException("The job was not created and cannot be started");
 
                 JobStatus = JobStatus.Running;
-                context.Respond(new JobStarted {JobId = JobId});
+                context.Respond(new JobStarted { JobId = JobId });
 
-                return TaskUtil.Completed;
+                return Task.CompletedTask;
             }
         }
 

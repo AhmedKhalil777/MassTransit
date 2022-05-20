@@ -1,9 +1,9 @@
 ﻿namespace MassTransit.Tests.Courier
 {
     using System;
-    using MassTransit.Courier;
+    using System.Runtime.Serialization;
+    using System.Text.Json;
     using MassTransit.Testing;
-    using Newtonsoft.Json;
     using NUnit.Framework;
     using TestFramework;
 
@@ -16,7 +16,7 @@
         public void Should_properly_map_the_types()
         {
             var builder = new RoutingSlipBuilder(Guid.NewGuid());
-            var cmd3 = new ActivityMessageThreeCmd {Data = "Msg Three in Routing Slip."};
+            var cmd3 = new ActivityMessageThreeCmd { Data = "Msg Three in Routing Slip." };
             builder.AddActivity("ActivityMessageThreeCmd", new Uri("loopback://localhost/exec_ActivityMessageThreeCmd"), cmd3);
         }
 
@@ -70,8 +70,12 @@
             };
 
             var builder = new RoutingSlipBuilder(Guid.NewGuid());
-            Assert.Throws<JsonSerializationException>(() =>
-                builder.AddActivity("Activity", new Uri("loopback://localhost/execute_activity"), new {Content = outer}));
+            Assert.That(async () =>
+            {
+                builder.AddActivity("Activity", new Uri("loopback://localhost/execute_activity"), new { Content = outer });
+
+                await Bus.Execute(builder.Build());
+            }, Throws.TypeOf<SerializationException>().With.InnerException.TypeOf<JsonException>());
         }
 
 

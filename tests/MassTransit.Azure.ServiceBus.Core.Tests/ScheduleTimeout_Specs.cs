@@ -4,10 +4,8 @@
     {
         using System;
         using System.Threading.Tasks;
-        using Automatonymous;
-        using MassTransit.Saga;
-        using MassTransit.Testing;
         using NUnit.Framework;
+        using Testing;
 
 
         [TestFixture]
@@ -20,13 +18,13 @@
             {
                 var memberNumber = NewId.NextGuid().ToString();
 
-                await InputQueueSendEndpoint.Send<CartItemAdded>(new {MemberNumber = memberNumber});
+                await InputQueueSendEndpoint.Send<CartItemAdded>(new { MemberNumber = memberNumber });
 
                 Guid? saga = await _repository.ShouldContainSagaInState(x => x.MemberNumber == memberNumber, _machine, _machine.Active, TestTimeout);
 
                 Assert.IsTrue(saga.HasValue);
 
-                await InputQueueSendEndpoint.Send<OrderSubmitted>(new {MemberNumber = memberNumber});
+                await InputQueueSendEndpoint.Send<OrderSubmitted>(new { MemberNumber = memberNumber });
 
                 ConsumeContext<CartRemoved> removed = await _cartRemoved;
 
@@ -39,7 +37,7 @@
             {
                 var memberNumber = NewId.NextGuid().ToString();
 
-                await InputQueueSendEndpoint.Send<CartItemAdded>(new {MemberNumber = memberNumber});
+                await InputQueueSendEndpoint.Send<CartItemAdded>(new { MemberNumber = memberNumber });
 
                 ConsumeContext<CartRemoved> removed = await _cartRemoved;
             }
@@ -50,13 +48,13 @@
             {
                 var memberNumber = NewId.NextGuid().ToString();
 
-                await InputQueueSendEndpoint.Send<CartItemAdded>(new {MemberNumber = memberNumber});
+                await InputQueueSendEndpoint.Send<CartItemAdded>(new { MemberNumber = memberNumber });
 
                 Guid? saga = await _repository.ShouldContainSagaInState(x => x.MemberNumber == memberNumber, _machine, _machine.Active, TestTimeout);
 
                 Assert.IsTrue(saga.HasValue);
 
-                await InputQueueSendEndpoint.Send<CartItemAdded>(new {MemberNumber = memberNumber});
+                await InputQueueSendEndpoint.Send<CartItemAdded>(new { MemberNumber = memberNumber });
 
                 ConsumeContext<CartRemoved> removed = await _cartRemoved;
             }
@@ -149,17 +147,18 @@
 
                 Schedule(() => CartTimeout, x => x.CartTimeoutTokenId, x =>
                 {
-                    x.Delay = TimeSpan.FromSeconds(30);
+                    x.Delay = TimeSpan.FromSeconds(10);
                     x.Received = p => p.CorrelateBy(state => state.MemberNumber, context => context.Message.MemberNumber);
                 });
 
 
                 Initially(When(ItemAdded)
-                    .ThenAsync(context =>
+                    .Then(context =>
                     {
                         context.Instance.MemberNumber = context.Data.MemberNumber;
                         context.Instance.ExpiresAfterSeconds = 3;
-                        return Console.Out.WriteLineAsync($"Cart {context.Instance.CorrelationId} Created: {context.Data.MemberNumber}");
+
+                        LogContext.Debug?.Log("Cart {CartId} Created: {MemberNumber}", context.Instance.CorrelationId, context.Data.MemberNumber);
                     })
                     .Schedule(CartTimeout, context => context.Init<CartExpired>(context.Instance),
                         context => TimeSpan.FromSeconds(context.Instance.ExpiresAfterSeconds))
@@ -167,16 +166,16 @@
 
                 During(Active,
                     When(CartTimeout.Received)
-                        .ThenAsync(context => Console.Out.WriteLineAsync($"Cart Expired: {context.Data.MemberNumber}"))
+                        .Then(context => LogContext.Debug?.Log("Cart Expired: {MemberNumber}", context.Data.MemberNumber))
                         .PublishAsync(context => context.Init<CartRemoved>(context.Instance))
                         .Finalize(),
                     When(Submitted)
-                        .ThenAsync(context => Console.Out.WriteLineAsync($"Cart Submitted: {context.Data.MemberNumber}"))
+                        .Then(context => LogContext.Debug?.Log("Cart Submitted: {MemberNumber}", context.Data.MemberNumber))
                         .Unschedule(CartTimeout)
                         .PublishAsync(context => context.Init<CartRemoved>(context.Instance))
                         .Finalize(),
                     When(ItemAdded)
-                        .ThenAsync(context => Console.Out.WriteLineAsync($"Card item added: {context.Data.MemberNumber}"))
+                        .Then(context => LogContext.Debug?.Log("Cart Item Added: {MemberNumber}", context.Data.MemberNumber))
                         .Schedule(CartTimeout, context => context.Init<CartExpired>(context.Instance),
                             context => TimeSpan.FromSeconds(context.Instance.ExpiresAfterSeconds)));
 

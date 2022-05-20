@@ -1,11 +1,12 @@
-namespace MassTransit.KafkaIntegration
+namespace MassTransit
 {
     using System;
     using Confluent.Kafka;
-    using MassTransit.Registration;
-    using Registration;
-    using Scoping;
-    using Transport;
+    using DependencyInjection;
+    using KafkaIntegration;
+    using KafkaIntegration.Configuration;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.DependencyInjection.Extensions;
 
 
     public static class KafkaProducerRegistrationExtensions
@@ -58,9 +59,9 @@ namespace MassTransit.KafkaIntegration
             if (string.IsNullOrWhiteSpace(topicName))
                 throw new ArgumentException(nameof(topicName));
 
-            var registration = new KafkaProducerRegistrationConfigurator<TKey, T>(topicName, configure);
-            configurator.Registrar.Register(provider => GetProducer<TKey, T>(topicName, provider));
-            configurator.AddRegistration(registration);
+            var registration = new KafkaProducerRegistration<TKey, T>(topicName, configure);
+            configurator.TryAddScoped<IKafkaRider, ITopicProducer<TKey, T>>((rider, provider) => GetProducer<TKey, T>(topicName, rider, provider));
+            configurator.Registrar.GetOrAdd<IKafkaProducerRegistration>(typeof(IKafkaProducerRegistration), _ => registration);
         }
 
         /// <summary>
@@ -83,9 +84,9 @@ namespace MassTransit.KafkaIntegration
             if (producerConfig == null)
                 throw new ArgumentNullException(nameof(producerConfig));
 
-            var registration = new KafkaProducerRegistrationConfigurator<TKey, T>(topicName, configure, producerConfig);
-            configurator.Registrar.Register(provider => GetProducer<TKey, T>(topicName, provider));
-            configurator.AddRegistration(registration);
+            var registration = new KafkaProducerRegistration<TKey, T>(topicName, configure, producerConfig);
+            configurator.TryAddScoped<IKafkaRider, ITopicProducer<TKey, T>>((rider, provider) => GetProducer<TKey, T>(topicName, rider, provider));
+            configurator.Registrar.GetOrAdd<IKafkaProducerRegistration>(typeof(IKafkaProducerRegistration), _ => registration);
         }
 
         /// <summary>
@@ -104,7 +105,7 @@ namespace MassTransit.KafkaIntegration
             where T : class
         {
             configurator.AddProducer(topicName, configure);
-            configurator.Registrar.Register<ITopicProducer<T>>(provider =>
+            configurator.TryAddScoped<ITopicProducer<T>>(provider =>
                 new KeyedTopicProducer<TKey, T>(provider.GetRequiredService<ITopicProducer<TKey, T>>(), keyResolver));
         }
 
@@ -125,23 +126,21 @@ namespace MassTransit.KafkaIntegration
             where T : class
         {
             configurator.AddProducer(topicName, producerConfig, configure);
-            configurator.Registrar.Register<ITopicProducer<T>>(provider =>
+            configurator.TryAddScoped<ITopicProducer<T>>(provider =>
                 new KeyedTopicProducer<TKey, T>(provider.GetRequiredService<ITopicProducer<TKey, T>>(), keyResolver));
         }
 
-        static ITopicProducer<TKey, T> GetProducer<TKey, T>(string topicName, IConfigurationServiceProvider provider)
+        static ITopicProducer<TKey, T> GetProducer<TKey, T>(string topicName, IKafkaRider rider, IServiceProvider provider)
             where T : class
         {
             var address = new Uri($"topic:{topicName}");
 
-            return GetProducer<TKey, T>(address, provider);
+            return GetProducer<TKey, T>(address, rider, provider);
         }
 
-        static ITopicProducer<TKey, T> GetProducer<TKey, T>(Uri address, IConfigurationServiceProvider provider)
+        static ITopicProducer<TKey, T> GetProducer<TKey, T>(Uri address, IKafkaRider rider, IServiceProvider provider)
             where T : class
         {
-            var rider = provider.GetRequiredService<IKafkaRider>();
-
             var contextProvider = provider.GetService<ScopedConsumeContextProvider>();
             if (contextProvider != null)
             {

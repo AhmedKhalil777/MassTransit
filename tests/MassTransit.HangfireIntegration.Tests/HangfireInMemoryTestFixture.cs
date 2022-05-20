@@ -26,7 +26,7 @@
         public HangfireInMemoryTestFixture()
         {
             _queueName = "hangfire";
-            HangfireAddress = new Uri($"loopback://localhost/{_queueName}");
+            HangfireAddress = new Uri($"queue:{_queueName}");
 
             _scheduler = new Lazy<IMessageScheduler>(() =>
                 new MessageScheduler(new EndpointScheduleMessageProvider(() => GetSendEndpoint(HangfireAddress)), Bus.Topology));
@@ -37,6 +37,8 @@
         protected ISendEndpoint HangfireEndpoint { get; private set; }
 
         protected IMessageScheduler Scheduler => _scheduler.Value;
+
+        protected JobStorage Storage => JobStorage.Current;
 
         protected override void ConfigureInMemoryBus(IInMemoryBusFactoryConfigurator configurator)
         {

@@ -3,12 +3,8 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using GreenPipes;
-    using GreenPipes.Builders;
-    using GreenPipes.Configurators;
-    using Pipeline;
-    using Pipeline.Filters;
-    using Pipeline.Pipes;
+    using Middleware;
+    using Transports;
 
 
     public class ReceivePipeConfiguration :
@@ -34,7 +30,7 @@
 
         public IBuildPipeConfigurator<ExceptionReceiveContext> ErrorConfigurator { get; }
 
-        public IReceivePipe CreatePipe(IConsumePipe consumePipe, IMessageDeserializer messageDeserializer)
+        public IReceivePipe CreatePipe(IConsumePipe consumePipe, ISerialization serializers)
         {
             if (_created)
                 throw new ConfigurationException("The ReceivePipeConfiguration can only be used once.");
@@ -45,7 +41,7 @@
                 x.Ignore<OperationCanceledException>();
             });
 
-            _configurator.UseFilter(new DeserializeFilter(messageDeserializer, consumePipe));
+            _configurator.UseFilter(new DeserializeFilter(serializers, consumePipe));
 
             _created = true;
 

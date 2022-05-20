@@ -4,8 +4,7 @@ namespace MassTransit.Transports
     using System.Threading;
     using System.Threading.Tasks;
     using Configuration;
-    using GreenPipes;
-    using GreenPipes.Agents;
+    using Middleware;
 
 
     public static class HostConfigurationRetryExtensions
@@ -15,7 +14,7 @@ namespace MassTransit.Transports
         {
             var description = hostConfiguration.HostAddress;
 
-            var tokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, supervisor.Stopping);
+            using var tokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, supervisor.Stopping);
 
             var stoppingContext = new SupervisorStoppingContext(tokenSource.Token);
 
@@ -78,8 +77,7 @@ namespace MassTransit.Transports
 
 
         class SupervisorStoppingContext :
-            BasePipeContext,
-            PipeContext
+            BasePipeContext
         {
             public SupervisorStoppingContext(CancellationToken cancellationToken)
                 : base(cancellationToken)

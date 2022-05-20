@@ -11,6 +11,7 @@ module.exports = {
       ['meta', { name: "msapplication-TileColor", content: "#3a0839"}],
       ['meta', { name: "msapplication-config", content: "/browserconfig.xml"}],
       ['meta', { name: "theme-color", content: "#ffffff"}],
+      ['meta', { name: "viewport", content: "width=device-width, initial-scale=1"}],
     ],
   plugins: [
     '@vuepress/back-to-top',
@@ -37,12 +38,25 @@ module.exports = {
         path: '/getting-started/',
         collapsable: false,
         children: [
+          {
+            title: 'Quick Starts',
+            path: '/quick-starts/',
+            collapsable: true,
+            children: [
+              '/quick-starts/in-memory',
+              '/quick-starts/rabbitmq',
+              '/quick-starts/azure-service-bus',
+              '/quick-starts/sqs'
+            ]
+          },
           '/getting-started/upgrade-v6',
           {
             title: 'Release Notes',
             path: '/releases/',
             collapsable: true,
             children: [
+              '/releases/v8.0.0',
+              '/releases/v7.2.3',
               '/releases/v7.2.0',
               '/releases/v7.1.8',
               '/releases/v7.1.7',
@@ -64,6 +78,7 @@ module.exports = {
         path: '/usage/',
         collapsable: false,
         children: [
+          '/usage/templates',
           '/usage/configuration',
           {
             title: 'Transports',
@@ -87,6 +102,16 @@ module.exports = {
               '/usage/riders/eventhub'
             ]
           },
+          {
+            title: 'FaaS',
+            path: '/usage/faas/',
+            collapsable: true,
+            children: [
+              '/usage/faas/azure-functions',
+              '/usage/faas/aws-lambda'
+            ]
+          },
+          '/usage/guidance',
           '/usage/mediator',
           '/usage/messages',
           '/usage/consumers',
@@ -126,11 +151,7 @@ module.exports = {
             children: [
               ['/usage/containers/definitions', 'Definitions'],
               ['/usage/containers/msdi', 'Microsoft'],
-              '/usage/containers/multibus',
-              ['/usage/containers/autofac', 'Autofac'],
-              ['/usage/containers/castlewindsor', 'Castle Windsor'],
-              ['/usage/containers/simpleinjector', 'Simple Injector'],
-              ['/usage/containers/structuremap', 'StructureMap']
+              '/usage/containers/multibus'
             ]
           },
           ['/usage/testing', 'Testing'],
